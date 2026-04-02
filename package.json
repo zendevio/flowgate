@@ -1,0 +1,32 @@
+{
+  "name": "flowgate",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "UNLICENSED",
+  "description": "CLI tool for evaluating user onboarding flows and validating step submissions",
+  "bin": { "onboard": "./onboard" },
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli/main.js",
+    "dev": "npx tsx src/cli/main.ts",
+    "pretest": "tsc && rm -rf dist-test && tsc -p tsconfig.test.json",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
+    "lint": "prettier --check . && tsc --noEmit",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run build && ./onboard requirements.json < input.json | diff - output.json"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.0",
+    "jest": "^30.3.0",
+    "prettier": "^3.5.0",
+    "typescript": "^6.0.2"
+  }
+}

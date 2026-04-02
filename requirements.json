@@ -1,0 +1,41 @@
+{
+  "data_types": {
+    "full_name": "string",
+    "date_of_birth": "date",
+    "city": "string",
+    "passport_number": "number"
+  },
+  "steps": {
+    "personal_information": {
+      "fields": [
+        "full_name",
+        "date_of_birth",
+        "city"
+      ]
+    },
+    "identity_verification": {
+      "fields": [
+        "passport_number"
+      ]
+    }
+  },
+  "flows": {
+    "de_onboarding": {
+      "conditions": {
+        "country": "DE"
+      },
+      "steps": [
+        "personal_information"
+      ]
+    },
+    "us_onboarding": {
+      "conditions": {
+        "country": "US"
+      },
+      "steps": [
+        "personal_information",
+        "identity_verification"
+      ]
+    }
+  }
+}
