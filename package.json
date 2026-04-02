@@ -5,8 +5,12 @@
   "type": "module",
   "license": "UNLICENSED",
   "description": "CLI tool for evaluating user onboarding flows and validating step submissions",
-  "bin": { "onboard": "./onboard" },
-  "engines": { "node": ">=24.0.0" },
+  "bin": {
+    "onboard": "./onboard"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli/main.js",

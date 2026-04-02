@@ -77,6 +77,7 @@ Four response shapes, each built by a dedicated function with exact key ordering
 ### Proportionality
 
 I dropped several production patterns that would be disproportionate at this scale:
+
 - **Branded types** (FlowId, StepId): No ID-swap risk in a stateless CLI
 - **Result types**: Exceptions are simpler here; Result<T, E> is a scaling pattern
 - **ESLint**: `prettier + tsc --noEmit` covers formatting and type safety
@@ -86,15 +87,15 @@ Each of these is worth adding as the codebase grows.
 
 ## Edge Cases and Assumptions
 
-| Ambiguity | Decision | Rationale |
-|-----------|----------|-----------|
-| Missing fields in submit data | Validation error with expected data_type as `rule` | `undefined` fails every type check; success always means step completed |
-| `not_next_step` response shape | Structural error: `{ user, flow, error }` | Pattern-matches the other structural errors (zero examples in spec) |
-| User object field type validation | Presence-only for step completion; type validation only on submit | Spec scopes type rules under the "submit > Rules" section |
-| "Valid YYYY-MM-DD" meaning | Full calendar validation (leap years, days in month) | "Valid" implies a real date, not just a regex match |
-| Conditions matching semantics | AND (all must match), missing key = no match | Multiple keys in a conditions object naturally implies conjunction |
-| Re-submitting a completed step | Returns `not_next_step` | A completed step is not the current next step |
-| Extra fields in submit data | Silently ignored | Validation iterates step fields, not data keys |
+| Ambiguity                         | Decision                                                          | Rationale                                                               |
+| --------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Missing fields in submit data     | Validation error with expected data_type as `rule`                | `undefined` fails every type check; success always means step completed |
+| `not_next_step` response shape    | Structural error: `{ user, flow, error }`                         | Pattern-matches the other structural errors (zero examples in spec)     |
+| User object field type validation | Presence-only for step completion; type validation only on submit | Spec scopes type rules under the "submit > Rules" section               |
+| "Valid YYYY-MM-DD" meaning        | Full calendar validation (leap years, days in month)              | "Valid" implies a real date, not just a regex match                     |
+| Conditions matching semantics     | AND (all must match), missing key = no match                      | Multiple keys in a conditions object naturally implies conjunction      |
+| Re-submitting a completed step    | Returns `not_next_step`                                           | A completed step is not the current next step                           |
+| Extra fields in submit data       | Silently ignored                                                  | Validation iterates step fields, not data keys                          |
 
 ## Testing
 
@@ -136,10 +137,10 @@ All architectural decisions, design trade-offs, and proportionality judgments ar
 
 ## Technologies
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| TypeScript | 6.0.2 | Language (strict mode, ESM) |
-| Node.js | 24 LTS | Runtime |
-| Zod | 4.3.6 | Schema validation at system boundary |
-| Jest | 30.3.0 | Testing (E2E + unit) |
-| Prettier | 3.5+ | Code formatting |
+| Technology | Version | Purpose                              |
+| ---------- | ------- | ------------------------------------ |
+| TypeScript | 6.0.2   | Language (strict mode, ESM)          |
+| Node.js    | 24 LTS  | Runtime                              |
+| Zod        | 4.3.6   | Schema validation at system boundary |
+| Jest       | 30.3.0  | Testing (E2E + unit)                 |
+| Prettier   | 3.5+    | Code formatting                      |

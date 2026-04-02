@@ -38,9 +38,12 @@ function handleSubmit(command: SubmitCommand, requirements: Requirements): objec
   const flowName = command.flow;
   const stepName = command.step;
 
-  // Error priority 1: flow_not_found (undefined OR conditions don't match)
-  const flow = requirements.flows[flowName];
-  if (!flow || !matchesConditions(command.user, flow.conditions)) {
+  // Error priority 1: flow_not_found (undefined, prototype pollution, OR conditions don't match)
+  if (!Object.hasOwn(requirements.flows, flowName)) {
+    return buildStructuralError(userId, flowName, 'flow_not_found');
+  }
+  const flow = requirements.flows[flowName]!;
+  if (!matchesConditions(command.user, flow.conditions)) {
     return buildStructuralError(userId, flowName, 'flow_not_found');
   }
 
@@ -56,10 +59,10 @@ function handleSubmit(command: SubmitCommand, requirements: Requirements): objec
   }
 
   // Error priority 4: field validation
-  const step = requirements.steps[stepName];
-  if (!step) {
+  if (!Object.hasOwn(requirements.steps, stepName)) {
     return buildStructuralError(userId, flowName, 'step_not_found');
   }
+  const step = requirements.steps[stepName]!;
 
   const errors = validateStepFields(step.fields, command.data, requirements.data_types);
   if (errors.length > 0) {
@@ -93,7 +96,7 @@ function buildSubmitSuccess(userId: string, evals: FlowEvaluation[]): object {
 function buildSubmitFailure(
   userId: string,
   errors: SubmissionError[],
-  evals: FlowEvaluation[],
+  evals: FlowEvaluation[]
 ): object {
   return {
     user: userId,
@@ -118,10 +121,7 @@ function toFlowOutput(evaluation: FlowEvaluation): object {
   return buildCompleteFlow(evaluation.name);
 }
 
-function buildPendingFlow(
-  name: string,
-  nextStep: { name: string; fields: string[] },
-): object {
+function buildPendingFlow(name: string, nextStep: { name: string; fields: string[] }): object {
   return {
     name,
     status: 'pending',

@@ -1,11 +1,62 @@
 [
   { "command": "get_flows", "user": { "id": "u1", "country": "DE" } },
-  { "command": "get_flows", "user": { "id": "u2", "country": "US", "full_name": "Satoshi Nakamoto", "date_of_birth": "1990-01-01", "city": "Chicago" } },
+  {
+    "command": "get_flows",
+    "user": {
+      "id": "u2",
+      "country": "US",
+      "full_name": "Satoshi Nakamoto",
+      "date_of_birth": "1990-01-01",
+      "city": "Chicago"
+    }
+  },
   { "command": "get_flows", "user": { "id": "u9", "country": "FR" } },
-  { "command": "submit", "user": { "id": "u3", "country": "DE" }, "flow": "de_onboarding", "step": "personal_information", "data": { "full_name": "Satoshi Nakamoto", "date_of_birth": "1990-01-01", "city": "Berlin" } },
-  { "command": "submit", "user": { "id": "u4", "country": "US" }, "flow": "us_onboarding", "step": "personal_information", "data": { "full_name": "Satoshi Nakamoto", "date_of_birth": "1990-01-01", "city": "Chicago" } },
-  { "command": "submit", "user": { "id": "u5", "country": "US", "full_name": "Satoshi Nakamoto", "date_of_birth": "1990-01-01", "city": "Chicago" }, "flow": "us_onboarding", "step": "identity_verification", "data": { "passport_number": "not a number" } },
-  { "command": "submit", "user": { "id": "u6", "country": "US" }, "flow": "nonexistent_flow", "step": "step1", "data": {} },
-  { "command": "submit", "user": { "id": "u7", "country": "US" }, "flow": "us_onboarding", "step": "nonexistent_step", "data": {} },
-  { "command": "submit", "user": { "id": "u8", "country": "US" }, "flow": "us_onboarding", "step": "personal_information", "data": { "full_name": "Satoshi Nakamoto", "date_of_birth": "1985-12-12", "city": "Chicago" } }
+  {
+    "command": "submit",
+    "user": { "id": "u3", "country": "DE" },
+    "flow": "de_onboarding",
+    "step": "personal_information",
+    "data": { "full_name": "Satoshi Nakamoto", "date_of_birth": "1990-01-01", "city": "Berlin" }
+  },
+  {
+    "command": "submit",
+    "user": { "id": "u4", "country": "US" },
+    "flow": "us_onboarding",
+    "step": "personal_information",
+    "data": { "full_name": "Satoshi Nakamoto", "date_of_birth": "1990-01-01", "city": "Chicago" }
+  },
+  {
+    "command": "submit",
+    "user": {
+      "id": "u5",
+      "country": "US",
+      "full_name": "Satoshi Nakamoto",
+      "date_of_birth": "1990-01-01",
+      "city": "Chicago"
+    },
+    "flow": "us_onboarding",
+    "step": "identity_verification",
+    "data": { "passport_number": "not a number" }
+  },
+  {
+    "command": "submit",
+    "user": { "id": "u6", "country": "US" },
+    "flow": "nonexistent_flow",
+    "step": "step1",
+    "data": {}
+  },
+  {
+    "command": "submit",
+    "user": { "id": "u7", "country": "US" },
+    "flow": "us_onboarding",
+    "step": "nonexistent_step",
+    "data": {}
+  },
+  {
+    "command": "submit",
+    "user": { "id": "u8", "country": "US" },
+    "flow": "us_onboarding",
+    "step": "personal_information",
+    "data": { "full_name": "Satoshi Nakamoto", "date_of_birth": "1985-12-12", "city": "Chicago" }
+  }
 ]

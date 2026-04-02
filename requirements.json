@@ -7,16 +7,10 @@
   },
   "steps": {
     "personal_information": {
-      "fields": [
-        "full_name",
-        "date_of_birth",
-        "city"
-      ]
+      "fields": ["full_name", "date_of_birth", "city"]
     },
     "identity_verification": {
-      "fields": [
-        "passport_number"
-      ]
+      "fields": ["passport_number"]
     }
   },
   "flows": {
@@ -24,18 +18,13 @@
       "conditions": {
         "country": "DE"
       },
-      "steps": [
-        "personal_information"
-      ]
+      "steps": ["personal_information"]
     },
     "us_onboarding": {
       "conditions": {
         "country": "US"
       },
-      "steps": [
-        "personal_information",
-        "identity_verification"
-      ]
+      "steps": ["personal_information", "identity_verification"]
     }
   }
 }

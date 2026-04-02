@@ -17,7 +17,7 @@ export const RequirementsSchema = z.object({
   flows: z.record(z.string(), FlowSchema),
 });
 
-const UserSchema = z.object({ id: z.string() }).passthrough();
+const UserSchema = z.looseObject({ id: z.string() });
 
 const GetFlowsCommandSchema = z.object({
   command: z.literal('get_flows'),
@@ -32,9 +32,6 @@ const SubmitCommandSchema = z.object({
   data: z.record(z.string(), z.unknown()),
 });
 
-const CommandSchema = z.discriminatedUnion('command', [
-  GetFlowsCommandSchema,
-  SubmitCommandSchema,
-]);
+const CommandSchema = z.discriminatedUnion('command', [GetFlowsCommandSchema, SubmitCommandSchema]);
 
 export const InputSchema = z.array(CommandSchema);

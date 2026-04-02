@@ -57,6 +57,11 @@ describe('isStepComplete', () => {
   it('returns false when step name is not in requirements', () => {
     expect(isStepComplete(makeUser(), 'nonexistent', makeReqs())).toBe(false);
   });
+
+  it('returns false when a user field is null (null is not a valid value)', () => {
+    const user = makeUser({ name: null, age: 30 });
+    expect(isStepComplete(user, 'personal', makeReqs())).toBe(false);
+  });
 });
 
 describe('findNextStep', () => {
@@ -131,6 +136,14 @@ describe('evaluateFlows', () => {
     const user = makeUser({ country: 'GB', name: 'Alice', age: 30, dob: '1990-01-01' });
     const results = evaluateFlows(user, makeReqs());
     expect(results).toEqual([{ name: 'gb_flow', nextStep: null }]);
+  });
+
+  it('treats null user field as incomplete for step evaluation', () => {
+    const user = makeUser({ country: 'GB', name: null, age: 30 });
+    const results = evaluateFlows(user, makeReqs());
+    expect(results).toEqual([
+      { name: 'gb_flow', nextStep: { name: 'personal', fields: ['name', 'age'] } },
+    ]);
   });
 
   it('preserves flow definition order from requirements', () => {

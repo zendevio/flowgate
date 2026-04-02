@@ -33,111 +33,135 @@ describe('get_flows edge cases', () => {
   });
 
   it('returns complete flow when all steps are done', () => {
-    const results = run([{
-      command: 'get_flows',
-      user: {
-        id: 'u1',
-        country: 'US',
-        full_name: 'Alice',
-        date_of_birth: '1990-01-01',
-        city: 'NYC',
-        passport_number: 12345,
+    const results = run([
+      {
+        command: 'get_flows',
+        user: {
+          id: 'u1',
+          country: 'US',
+          full_name: 'Alice',
+          date_of_birth: '1990-01-01',
+          city: 'NYC',
+          passport_number: 12345,
+        },
       },
-    }]);
-    expect(results).toEqual([{
-      user: 'u1',
-      flows: [{ name: 'us_onboarding', status: 'complete' }],
-    }]);
+    ]);
+    expect(results).toEqual([
+      {
+        user: 'u1',
+        flows: [{ name: 'us_onboarding', status: 'complete' }],
+      },
+    ]);
   });
 });
 
 describe('submit edge cases', () => {
   it('returns not_next_step when submitting a step that is not next', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'US' },
-      flow: 'us_onboarding',
-      step: 'identity_verification',
-      data: { passport_number: 12345 },
-    }]);
-    expect(results).toEqual([{
-      user: 'u1',
-      flow: 'us_onboarding',
-      error: 'not_next_step',
-    }]);
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'US' },
+        flow: 'us_onboarding',
+        step: 'identity_verification',
+        data: { passport_number: 12345 },
+      },
+    ]);
+    expect(results).toEqual([
+      {
+        user: 'u1',
+        flow: 'us_onboarding',
+        error: 'not_next_step',
+      },
+    ]);
   });
 
   it('returns not_next_step when resubmitting a completed step', () => {
-    const results = run([{
-      command: 'submit',
-      user: {
-        id: 'u1',
-        country: 'US',
-        full_name: 'Alice',
-        date_of_birth: '1990-01-01',
-        city: 'NYC',
+    const results = run([
+      {
+        command: 'submit',
+        user: {
+          id: 'u1',
+          country: 'US',
+          full_name: 'Alice',
+          date_of_birth: '1990-01-01',
+          city: 'NYC',
+        },
+        flow: 'us_onboarding',
+        step: 'personal_information',
+        data: { full_name: 'Bob', date_of_birth: '1991-01-01', city: 'LA' },
       },
-      flow: 'us_onboarding',
-      step: 'personal_information',
-      data: { full_name: 'Bob', date_of_birth: '1991-01-01', city: 'LA' },
-    }]);
-    expect(results).toEqual([{
-      user: 'u1',
-      flow: 'us_onboarding',
-      error: 'not_next_step',
-    }]);
+    ]);
+    expect(results).toEqual([
+      {
+        user: 'u1',
+        flow: 'us_onboarding',
+        error: 'not_next_step',
+      },
+    ]);
   });
 
   it('returns flow_not_found when user country does not match flow conditions', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'DE' },
-      flow: 'us_onboarding',
-      step: 'personal_information',
-      data: {},
-    }]);
-    expect(results).toEqual([{
-      user: 'u1',
-      flow: 'us_onboarding',
-      error: 'flow_not_found',
-    }]);
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'DE' },
+        flow: 'us_onboarding',
+        step: 'personal_information',
+        data: {},
+      },
+    ]);
+    expect(results).toEqual([
+      {
+        user: 'u1',
+        flow: 'us_onboarding',
+        error: 'flow_not_found',
+      },
+    ]);
   });
 
   it('returns validation errors for missing required fields', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'DE' },
-      flow: 'de_onboarding',
-      step: 'personal_information',
-      data: {},
-    }]);
-    expect(results).toEqual([{
-      user: 'u1',
-      submission_result: 'failure',
-      submission_errors: [
-        { field: 'full_name', rule: 'string' },
-        { field: 'date_of_birth', rule: 'date' },
-        { field: 'city', rule: 'string' },
-      ],
-      flows: [{
-        name: 'de_onboarding',
-        status: 'pending',
-        next_step: {
-          name: 'personal_information',
-          fields: ['full_name', 'date_of_birth', 'city'],
-        },
-      }],
-    }]);
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'DE' },
+        flow: 'de_onboarding',
+        step: 'personal_information',
+        data: {},
+      },
+    ]);
+    expect(results).toEqual([
+      {
+        user: 'u1',
+        submission_result: 'failure',
+        submission_errors: [
+          { field: 'full_name', rule: 'string' },
+          { field: 'date_of_birth', rule: 'date' },
+          { field: 'city', rule: 'string' },
+        ],
+        flows: [
+          {
+            name: 'de_onboarding',
+            status: 'pending',
+            next_step: {
+              name: 'personal_information',
+              fields: ['full_name', 'date_of_birth', 'city'],
+            },
+          },
+        ],
+      },
+    ]);
   });
 
   it('returns multiple validation errors in step field definition order', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'DE' },
-      flow: 'de_onboarding',
-      step: 'personal_information',
-      data: { full_name: 123, date_of_birth: 'bad', city: 456 },
-    }]);
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'DE' },
+        flow: 'de_onboarding',
+        step: 'personal_information',
+        data: { full_name: 123, date_of_birth: 'bad', city: 456 },
+      },
+    ]);
     const result = results[0] as { submission_errors: unknown[] };
     expect(result.submission_errors).toEqual([
       { field: 'full_name', rule: 'string' },
@@ -147,101 +171,156 @@ describe('submit edge cases', () => {
   });
 
   it('rejects numeric string for number field', () => {
-    const results = run([{
-      command: 'submit',
-      user: {
-        id: 'u1',
-        country: 'US',
-        full_name: 'Alice',
-        date_of_birth: '1990-01-01',
-        city: 'NYC',
+    const results = run([
+      {
+        command: 'submit',
+        user: {
+          id: 'u1',
+          country: 'US',
+          full_name: 'Alice',
+          date_of_birth: '1990-01-01',
+          city: 'NYC',
+        },
+        flow: 'us_onboarding',
+        step: 'identity_verification',
+        data: { passport_number: '12345' },
       },
-      flow: 'us_onboarding',
-      step: 'identity_verification',
-      data: { passport_number: '12345' },
-    }]);
-    const result = results[0] as { submission_errors: unknown[] };
-    expect(result.submission_errors).toEqual([
-      { field: 'passport_number', rule: 'number' },
     ]);
+    const result = results[0] as { submission_errors: unknown[] };
+    expect(result.submission_errors).toEqual([{ field: 'passport_number', rule: 'number' }]);
   });
 
   it('silently ignores extra fields in submit data', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'DE' },
-      flow: 'de_onboarding',
-      step: 'personal_information',
-      data: {
-        full_name: 'Alice',
-        date_of_birth: '1990-01-01',
-        city: 'Berlin',
-        extra_field: 'ignored',
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'DE' },
+        flow: 'de_onboarding',
+        step: 'personal_information',
+        data: {
+          full_name: 'Alice',
+          date_of_birth: '1990-01-01',
+          city: 'Berlin',
+          extra_field: 'ignored',
+        },
       },
-    }]);
+    ]);
     const result = results[0] as { submission_result: string };
     expect(result.submission_result).toBe('success');
   });
 
   it('rejects invalid date format', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'DE' },
-      flow: 'de_onboarding',
-      step: 'personal_information',
-      data: { full_name: 'Alice', date_of_birth: '04-01-2000', city: 'Berlin' },
-    }]);
-    const result = results[0] as { submission_errors: unknown[] };
-    expect(result.submission_errors).toEqual([
-      { field: 'date_of_birth', rule: 'date' },
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'DE' },
+        flow: 'de_onboarding',
+        step: 'personal_information',
+        data: { full_name: 'Alice', date_of_birth: '04-01-2000', city: 'Berlin' },
+      },
     ]);
+    const result = results[0] as { submission_errors: unknown[] };
+    expect(result.submission_errors).toEqual([{ field: 'date_of_birth', rule: 'date' }]);
   });
 
   it('rejects impossible calendar date', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'DE' },
-      flow: 'de_onboarding',
-      step: 'personal_information',
-      data: { full_name: 'Alice', date_of_birth: '2026-02-30', city: 'Berlin' },
-    }]);
-    const result = results[0] as { submission_errors: unknown[] };
-    expect(result.submission_errors).toEqual([
-      { field: 'date_of_birth', rule: 'date' },
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'DE' },
+        flow: 'de_onboarding',
+        step: 'personal_information',
+        data: { full_name: 'Alice', date_of_birth: '2026-02-30', city: 'Berlin' },
+      },
     ]);
+    const result = results[0] as { submission_errors: unknown[] };
+    expect(result.submission_errors).toEqual([{ field: 'date_of_birth', rule: 'date' }]);
   });
 
   it('accepts empty string as valid string field', () => {
-    const results = run([{
-      command: 'submit',
-      user: { id: 'u1', country: 'DE' },
-      flow: 'de_onboarding',
-      step: 'personal_information',
-      data: { full_name: '', date_of_birth: '1990-01-01', city: '' },
-    }]);
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'DE' },
+        flow: 'de_onboarding',
+        step: 'personal_information',
+        data: { full_name: '', date_of_birth: '1990-01-01', city: '' },
+      },
+    ]);
     const result = results[0] as { submission_result: string };
     expect(result.submission_result).toBe('success');
   });
 
-  it('completes multi-step flow after all steps submitted', () => {
-    const results = run([{
-      command: 'submit',
-      user: {
-        id: 'u1',
-        country: 'US',
-        full_name: 'Alice',
-        date_of_birth: '1990-01-01',
-        city: 'NYC',
+  it('returns flow_not_found for prototype pollution flow names', () => {
+    const results = run([
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'US' },
+        flow: '__proto__',
+        step: 'personal_information',
+        data: {},
       },
-      flow: 'us_onboarding',
-      step: 'identity_verification',
-      data: { passport_number: 12345 },
-    }]);
-    expect(results).toEqual([{
-      user: 'u1',
-      submission_result: 'success',
-      flows: [{ name: 'us_onboarding', status: 'complete' }],
-    }]);
+      {
+        command: 'submit',
+        user: { id: 'u1', country: 'US' },
+        flow: 'constructor',
+        step: 'personal_information',
+        data: {},
+      },
+    ]);
+    expect(results).toEqual([
+      { user: 'u1', flow: '__proto__', error: 'flow_not_found' },
+      { user: 'u1', flow: 'constructor', error: 'flow_not_found' },
+    ]);
+  });
+
+  it('treats null user fields as incomplete for step evaluation', () => {
+    const results = run([
+      {
+        command: 'get_flows',
+        user: { id: 'u1', country: 'DE', full_name: null, date_of_birth: null, city: null },
+      },
+    ]);
+    expect(results).toEqual([
+      {
+        user: 'u1',
+        flows: [
+          {
+            name: 'de_onboarding',
+            status: 'pending',
+            next_step: {
+              name: 'personal_information',
+              fields: ['full_name', 'date_of_birth', 'city'],
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('completes multi-step flow after all steps submitted', () => {
+    const results = run([
+      {
+        command: 'submit',
+        user: {
+          id: 'u1',
+          country: 'US',
+          full_name: 'Alice',
+          date_of_birth: '1990-01-01',
+          city: 'NYC',
+        },
+        flow: 'us_onboarding',
+        step: 'identity_verification',
+        data: { passport_number: 12345 },
+      },
+    ]);
+    expect(results).toEqual([
+      {
+        user: 'u1',
+        submission_result: 'success',
+        flows: [{ name: 'us_onboarding', status: 'complete' }],
+      },
+    ]);
   });
 });
 

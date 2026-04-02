@@ -5,10 +5,7 @@ export interface FlowEvaluation {
   nextStep: { name: string; fields: string[] } | null;
 }
 
-export function evaluateFlows(
-  user: UserObject,
-  requirements: Requirements,
-): FlowEvaluation[] {
+export function evaluateFlows(user: UserObject, requirements: Requirements): FlowEvaluation[] {
   const results: FlowEvaluation[] = [];
 
   for (const [name, flow] of Object.entries(requirements.flows)) {
@@ -22,10 +19,7 @@ export function evaluateFlows(
   return results;
 }
 
-export function matchesConditions(
-  user: UserObject,
-  conditions: Record<string, string>,
-): boolean {
+export function matchesConditions(user: UserObject, conditions: Record<string, string>): boolean {
   for (const [key, value] of Object.entries(conditions)) {
     if (user[key] !== value) {
       return false;
@@ -37,14 +31,14 @@ export function matchesConditions(
 export function isStepComplete(
   user: UserObject,
   stepName: string,
-  requirements: Requirements,
+  requirements: Requirements
 ): boolean {
   const step = requirements.steps[stepName];
   if (!step) {
     return false;
   }
   for (const field of step.fields) {
-    if (user[field] === undefined) {
+    if (user[field] == null) {
       return false;
     }
   }
@@ -54,7 +48,7 @@ export function isStepComplete(
 export function findNextStep(
   user: UserObject,
   flow: FlowConfig,
-  requirements: Requirements,
+  requirements: Requirements
 ): { name: string; fields: string[] } | null {
   for (const stepName of flow.steps) {
     if (!isStepComplete(user, stepName, requirements)) {
@@ -71,7 +65,7 @@ export function findNextStep(
 export function mergeStepData(
   user: UserObject,
   data: Record<string, unknown>,
-  stepFields: string[],
+  stepFields: string[]
 ): UserObject {
   const filtered: Record<string, unknown> = {};
   for (const field of stepFields) {

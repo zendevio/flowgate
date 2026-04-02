@@ -40,7 +40,7 @@ export function validateFieldType(dataType: DataType, value: unknown): boolean {
 export function validateStepFields(
   stepFields: string[],
   data: Record<string, unknown>,
-  dataTypes: Record<string, DataType>,
+  dataTypes: Record<string, DataType>
 ): SubmissionError[] {
   const errors: SubmissionError[] = [];
 
@@ -62,9 +62,7 @@ export function validateRequirementsIntegrity(requirements: Requirements): void 
   for (const [stepName, step] of Object.entries(requirements.steps)) {
     for (const field of step.fields) {
       if (!(field in requirements.data_types)) {
-        throw new Error(
-          `Step '${stepName}' references field '${field}' not defined in data_types`
-        );
+        throw new Error(`Step '${stepName}' references field '${field}' not defined in data_types`);
       }
     }
   }
@@ -72,9 +70,7 @@ export function validateRequirementsIntegrity(requirements: Requirements): void 
   for (const [flowName, flow] of Object.entries(requirements.flows)) {
     for (const stepName of flow.steps) {
       if (!(stepName in requirements.steps)) {
-        throw new Error(
-          `Flow '${flowName}' references step '${stepName}' not defined in steps`
-        );
+        throw new Error(`Flow '${flowName}' references step '${stepName}' not defined in steps`);
       }
     }
   }

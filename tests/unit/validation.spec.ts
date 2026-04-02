@@ -70,7 +70,7 @@ describe('validateStepFields', () => {
     const errors = validateStepFields(
       ['age', 'name'],
       { age: 'not-a-number', name: 42 },
-      { age: 'number', name: 'string' },
+      { age: 'number', name: 'string' }
     );
     expect(errors).toEqual([
       { field: 'age', rule: 'number' },
@@ -84,7 +84,11 @@ describe('validateStepFields', () => {
   });
 
   it('ignores extra fields in data not defined in step', () => {
-    const errors = validateStepFields(['name'], { name: 'Alice', extra: 'ignored' }, { name: 'string' });
+    const errors = validateStepFields(
+      ['name'],
+      { name: 'Alice', extra: 'ignored' },
+      { name: 'string' }
+    );
     expect(errors).toEqual([]);
   });
 
@@ -92,7 +96,7 @@ describe('validateStepFields', () => {
     const errors = validateStepFields(
       ['a', 'b', 'c'],
       { a: 1, b: 2, c: 3 },
-      { a: 'string', b: 'string', c: 'date' },
+      { a: 'string', b: 'string', c: 'date' }
     );
     expect(errors).toHaveLength(3);
   });
@@ -120,7 +124,7 @@ describe('validateRequirementsIntegrity', () => {
       flows: {},
     };
     expect(() => validateRequirementsIntegrity(req)).toThrow(
-      "Step 'identity' references field 'name' not defined in data_types",
+      "Step 'identity' references field 'name' not defined in data_types"
     );
   });
 
@@ -131,7 +135,7 @@ describe('validateRequirementsIntegrity', () => {
       flows: { kyc: { conditions: {}, steps: ['missing_step'] } },
     };
     expect(() => validateRequirementsIntegrity(req)).toThrow(
-      "Flow 'kyc' references step 'missing_step' not defined in steps",
+      "Flow 'kyc' references step 'missing_step' not defined in steps"
     );
   });
 });
