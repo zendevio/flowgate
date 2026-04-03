@@ -99,9 +99,9 @@ Each of these is worth adding as the codebase grows.
 
 ## Testing
 
-88 tests across 3 suites:
+92 tests across 3 suites:
 
-- **Unit: validation** (48 tests) - Table-driven `it.each` for `isValidDate` (17 cases), `validateFieldType` (22 cases across string/number/date), plus `validateStepFields` and `validateRequirementsIntegrity`
+- **Unit: validation** (52 tests) - Table-driven `it.each` for `isValidDate` (17 cases), `validateFieldType` (26 cases across string/number/date including arrays and objects), plus `validateStepFields` and `validateRequirementsIntegrity`
 - **Unit: engine** (21 tests) - `matchesConditions`, `isStepComplete`, `findNextStep`, `mergeStepData`, `evaluateFlows`, null field handling
 - **Integration: CLI** (19 tests) - Full example output comparison, plus edge cases: `not_next_step`, missing fields, numeric strings, extra fields, invalid dates, impossible calendar dates, empty strings, multi-step completion, prototype pollution guards, null field values, error exit codes
 

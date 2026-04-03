@@ -55,6 +55,10 @@ describe('validateFieldType', () => {
     ['date', '01-15-2026', false],
     ['date', 12345, false],
     ['date', null, false],
+    ['string', [1, 2], false],
+    ['string', { a: 1 }, false],
+    ['number', [1], false],
+    ['date', {}, false],
   ])('validateFieldType(%s, %s) returns %s', (dataType, value, expected) => {
     expect(validateFieldType(dataType, value)).toBe(expected);
   });

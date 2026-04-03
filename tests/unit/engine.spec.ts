@@ -88,14 +88,14 @@ describe('mergeStepData', () => {
   it('merges only step-defined fields from data onto user', () => {
     const user = makeUser({ country: 'GB' });
     const result = mergeStepData(user, { name: 'Alice', age: 30 }, ['name', 'age']);
-    expect(result).toMatchObject({ id: 'u1', country: 'GB', name: 'Alice', age: 30 });
+    expect(result).toEqual({ id: 'u1', country: 'GB', name: 'Alice', age: 30 });
   });
 
   it('ignores extra fields in data not in step definition', () => {
     const user = makeUser();
     const result = mergeStepData(user, { name: 'Alice', extra: 'ignored' }, ['name']);
     expect(result).not.toHaveProperty('extra');
-    expect(result).toMatchObject({ id: 'u1', name: 'Alice' });
+    expect(result).toEqual({ id: 'u1', name: 'Alice' });
   });
 
   it('preserves existing user fields (id, country, etc.)', () => {
