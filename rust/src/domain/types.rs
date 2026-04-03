@@ -1,5 +1,3 @@
-//! All domain and response types for the onboarding engine.
-
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};

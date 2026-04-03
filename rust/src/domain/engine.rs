@@ -1,5 +1,3 @@
-//! Flow evaluation, condition matching, step completion, and data merging.
-
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
 

@@ -1,5 +1,3 @@
-//! Integration tests for the FlowGate CLI binary.
-
 use std::path::Path;
 
 use assert_cmd::Command;

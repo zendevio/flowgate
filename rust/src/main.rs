@@ -1,5 +1,3 @@
-//! CLI entry point for the FlowGate onboarding engine.
-
 mod cli;
 mod domain;
 

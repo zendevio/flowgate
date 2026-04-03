@@ -1,5 +1,3 @@
-//! Command dispatch and response construction for get_flows and submit.
-
 use serde_json::{Map, Value};
 
 use crate::domain::engine::{

@@ -1,5 +1,3 @@
-//! Field type validation, date checking, and requirements integrity verification.
-
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
 
