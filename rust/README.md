@@ -4,6 +4,8 @@ Rust implementation of the FlowGate onboarding flow engine. Produces byte-identi
 
 ## Quick Start
 
+**Prerequisites:** Rust 1.85+ (stable)
+
 Build and run:
 
     cargo build --release && cp target/release/onboard .
@@ -20,19 +22,19 @@ Or install system-wide:
 
 ## Architecture
 
-Single binary crate with two module trees mirroring the TS layering:
+Single binary crate with two module trees separating pure domain logic from I/O and CLI concerns:
 
 - `domain/` -- pure logic, zero I/O: types, flow evaluation engine, field validation
 - `cli/` -- command dispatch, response construction
 - `main.rs` -- entry point, arg parsing (clap), stdin/stdout, error reporting
 
-What Rust gives us for free compared to the TS version:
+What Rust brings to this problem:
 
-- **Exhaustive match** on command and data type enums replaces `assertNever`
-- **`Option<T>`** makes absent-vs-present explicit; no `== null` loose equality tricks
-- **serde derives** replace the 45 LOC Zod schema layer entirely
-- **No prototype pollution surface** -- `IndexMap::get()` is always an own-key lookup, so the `Object.hasOwn()` guards from the TS handlers are unnecessary
-- **Struct field order guarantees** JSON key ordering at compile time, not runtime
+- **Exhaustive match** on command and data type enums -- the compiler enforces every variant is handled
+- **`Option<T>`** makes absent-vs-present explicit at the type level
+- **serde derives** handle JSON parsing and validation declaratively
+- **No prototype pollution surface** -- `IndexMap::get()` is always an own-key lookup by design
+- **Struct field order** guarantees JSON key ordering at compile time
 
 See the [root README](../README.md) for full design rationale and spec compliance details.
 
@@ -51,7 +53,7 @@ Coverage includes all spec examples, date calendar validation, numeric string re
 
 ## Why Rust?
 
-I implemented this in Rust to explore how Rust's type system and ownership model apply to this domain. The four response shapes are modeled as an untagged enum where invalid states are unrepresentable, which is the strongest correctness improvement over the TS version.
+I implemented this in Rust to explore how Rust's type system and ownership model apply to this domain. The four response shapes are modeled as an untagged enum where invalid states are unrepresentable -- the compiler enforces correctness that would otherwise require runtime checks.
 
 ## Dependencies
 

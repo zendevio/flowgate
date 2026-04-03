@@ -47,9 +47,7 @@ pub(crate) type Result<T> = std::result::Result<T, CliError>;
 fn main() -> ExitCode {
     // TTY check: if stdin is a terminal, print usage and exit
     if io::stdin().is_terminal() {
-        write_stderr(
-            "Error: No input on stdin. Usage: ./onboard requirements.json < input.json\n",
-        );
+        write_stderr("Error: No input on stdin. Usage: ./onboard requirements.json < input.json\n");
         return ExitCode::from(2);
     }
 
@@ -76,8 +74,7 @@ fn run() -> Result<()> {
     let requirements: Requirements =
         serde_json::from_str(&requirements_raw).map_err(CliError::RequirementsParse)?;
 
-    validate_requirements_integrity(&requirements)
-        .map_err(CliError::RequirementsInvalid)?;
+    validate_requirements_integrity(&requirements).map_err(CliError::RequirementsInvalid)?;
 
     // Read and parse stdin
     let mut stdin_raw = String::new();
@@ -85,12 +82,9 @@ fn run() -> Result<()> {
         .read_to_string(&mut stdin_raw)
         .map_err(CliError::StdinRead)?;
 
-    let stdin_clean = stdin_raw
-        .strip_prefix('\u{feff}')
-        .unwrap_or(&stdin_raw);
+    let stdin_clean = stdin_raw.strip_prefix('\u{feff}').unwrap_or(&stdin_raw);
 
-    let commands: Vec<Command> =
-        serde_json::from_str(stdin_clean).map_err(CliError::InputParse)?;
+    let commands: Vec<Command> = serde_json::from_str(stdin_clean).map_err(CliError::InputParse)?;
 
     // Dispatch all commands and collect results
     let results: Vec<_> = commands
@@ -99,8 +93,8 @@ fn run() -> Result<()> {
         .collect();
 
     // Write JSON output to stdout with trailing newline
-    let output = serde_json::to_string_pretty(&results)
-        .expect("Response serialization should never fail");
+    let output =
+        serde_json::to_string_pretty(&results).expect("Response serialization should never fail");
 
     let stdout = io::stdout();
     let mut handle = stdout.lock();

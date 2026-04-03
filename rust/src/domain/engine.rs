@@ -1,9 +1,7 @@
 use indexmap::IndexMap;
 use serde_json::{Map, Value};
 
-use super::types::{
-    FlowConfig, FlowEvaluation, NextStep, Requirements, UserObject,
-};
+use super::types::{FlowConfig, FlowEvaluation, NextStep, Requirements, UserObject};
 
 /// Evaluates all flows against a user, returning matching flows in definition order.
 pub(crate) fn evaluate_flows(
@@ -27,10 +25,7 @@ pub(crate) fn evaluate_flows(
 }
 
 /// Checks whether a user satisfies all flow conditions (AND semantics).
-pub(crate) fn matches_conditions(
-    user: &UserObject,
-    conditions: &IndexMap<String, String>,
-) -> bool {
+pub(crate) fn matches_conditions(user: &UserObject, conditions: &IndexMap<String, String>) -> bool {
     conditions.iter().all(|(key, value)| {
         user.get_field(key)
             .and_then(Value::as_str)
@@ -48,9 +43,9 @@ pub(crate) fn is_step_complete(
     let Some(step) = requirements.steps.get(step_name) else {
         return false;
     };
-    step.fields.iter().all(|field| {
-        matches!(user.get_field(field), Some(v) if !v.is_null())
-    })
+    step.fields
+        .iter()
+        .all(|field| matches!(user.get_field(field), Some(v) if !v.is_null()))
 }
 
 /// Finds the first incomplete step in a flow, returning its name and fields.
@@ -248,11 +243,7 @@ mod tests {
         data.insert("name".into(), json!("Alice"));
         data.insert("age".into(), json!(30));
 
-        let merged = merge_step_data(
-            &user,
-            &data,
-            &["name".into(), "age".into()],
-        );
+        let merged = merge_step_data(&user, &data, &["name".into(), "age".into()]);
         assert_eq!(merged.id, "u1");
         assert_eq!(merged.fields.get("country").unwrap(), "GB");
         assert_eq!(merged.fields.get("name").unwrap(), "Alice");

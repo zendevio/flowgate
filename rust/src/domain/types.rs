@@ -187,7 +187,7 @@ pub(crate) struct NextStep {
 
 impl FlowEvaluation {
     /// Converts this evaluation into the output representation.
-    pub(crate) fn to_flow_output(self) -> FlowOutput {
+    pub(crate) fn into_flow_output(self) -> FlowOutput {
         match self.next_step {
             Some(next) => FlowOutput {
                 name: self.name,

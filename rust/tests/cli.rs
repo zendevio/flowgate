@@ -2,7 +2,7 @@ use std::path::Path;
 
 use assert_cmd::Command;
 use predicates::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// Rust crate root directory containing fixture files.
 fn crate_root() -> &'static Path {
@@ -33,8 +33,7 @@ fn golden_test_produces_output_matching_output_json() {
     let input_path = crate_root().join("input.json");
     let output_path = crate_root().join("output.json");
 
-    let input: Value =
-        serde_json::from_str(&std::fs::read_to_string(input_path).unwrap()).unwrap();
+    let input: Value = serde_json::from_str(&std::fs::read_to_string(input_path).unwrap()).unwrap();
     let expected: Value =
         serde_json::from_str(&std::fs::read_to_string(output_path).unwrap()).unwrap();
 

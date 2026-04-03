@@ -1,20 +1,15 @@
 use serde_json::{Map, Value};
 
-use crate::domain::engine::{
-    evaluate_flows, find_next_step, matches_conditions, merge_step_data,
-};
+use crate::domain::engine::{evaluate_flows, find_next_step, matches_conditions, merge_step_data};
 use crate::domain::types::{
-    Command, FlowEvaluation, FlowOutput, GetFlowsResponse, Requirements,
-    Response, StructuralErrorKind, StructuralErrorResponse,
-    SubmitFailureResponse, SubmitSuccessResponse, UserObject,
+    Command, FlowEvaluation, FlowOutput, GetFlowsResponse, Requirements, Response,
+    StructuralErrorKind, StructuralErrorResponse, SubmitFailureResponse, SubmitSuccessResponse,
+    UserObject,
 };
 use crate::domain::validation::validate_step_fields;
 
 /// Dispatches a command to the appropriate handler.
-pub(crate) fn handle_command(
-    command: Command,
-    requirements: &Requirements,
-) -> Response {
+pub(crate) fn handle_command(command: Command, requirements: &Requirements) -> Response {
     match command {
         Command::GetFlows { user } => handle_get_flows(user, requirements),
         Command::Submit {
@@ -27,10 +22,7 @@ pub(crate) fn handle_command(
 }
 
 /// Handles the get_flows command: evaluates all flows for the user.
-fn handle_get_flows(
-    user: UserObject,
-    requirements: &Requirements,
-) -> Response {
+fn handle_get_flows(user: UserObject, requirements: &Requirements) -> Response {
     let user_id = user.id.clone();
     let evals = evaluate_flows(&user, requirements);
     Response::GetFlows(GetFlowsResponse {
@@ -64,9 +56,7 @@ fn handle_submit(
 
     // Error priority 3: not_next_step
     let next_step = find_next_step(&user, flow, requirements);
-    let is_next = next_step
-        .as_ref()
-        .is_some_and(|ns| ns.name == step_name);
+    let is_next = next_step.as_ref().is_some_and(|ns| ns.name == step_name);
     if !is_next {
         return structural_error(user_id, flow_name, StructuralErrorKind::NotNextStep);
     }
@@ -98,11 +88,7 @@ fn handle_submit(
 }
 
 /// Builds a structural error response.
-fn structural_error(
-    user_id: String,
-    flow_name: String,
-    kind: StructuralErrorKind,
-) -> Response {
+fn structural_error(user_id: String, flow_name: String, kind: StructuralErrorKind) -> Response {
     Response::StructuralError(StructuralErrorResponse {
         user: user_id,
         flow: flow_name,
@@ -114,6 +100,6 @@ fn structural_error(
 fn to_flow_outputs(evals: Vec<FlowEvaluation>) -> Vec<FlowOutput> {
     evals
         .into_iter()
-        .map(FlowEvaluation::to_flow_output)
+        .map(FlowEvaluation::into_flow_output)
         .collect()
 }

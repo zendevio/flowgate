@@ -8,7 +8,7 @@ pub(crate) fn validate_field_type(data_type: DataType, value: &Value) -> bool {
     match data_type {
         DataType::String => value.is_string(),
         DataType::Number => value.is_number(),
-        DataType::Date => value.as_str().is_some_and(|s| is_valid_date(s)),
+        DataType::Date => value.as_str().is_some_and(is_valid_date),
     }
 }
 
@@ -99,9 +99,7 @@ pub(crate) fn validate_step_fields(
 
 /// Cross-checks referential integrity of requirements: step fields must exist
 /// in data_types, and flow steps must exist in the steps map.
-pub(crate) fn validate_requirements_integrity(
-    requirements: &Requirements,
-) -> Result<(), String> {
+pub(crate) fn validate_requirements_integrity(requirements: &Requirements) -> Result<(), String> {
     for (step_name, step) in &requirements.steps {
         for field in &step.fields {
             if !requirements.data_types.contains_key(field) {
@@ -223,11 +221,7 @@ mod tests {
         data.insert("age".into(), json!("not-a-number"));
         data.insert("name".into(), json!(42));
 
-        let errors = validate_step_fields(
-            &["age".into(), "name".into()],
-            &data,
-            &dt,
-        );
+        let errors = validate_step_fields(&["age".into(), "name".into()], &data, &dt);
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0].field, "age");
         assert_eq!(errors[0].rule, "number");
@@ -270,11 +264,7 @@ mod tests {
         data.insert("b".into(), json!(2));
         data.insert("c".into(), json!(3));
 
-        let errors = validate_step_fields(
-            &["a".into(), "b".into(), "c".into()],
-            &data,
-            &dt,
-        );
+        let errors = validate_step_fields(&["a".into(), "b".into(), "c".into()], &data, &dt);
         assert_eq!(errors.len(), 3);
     }
 
