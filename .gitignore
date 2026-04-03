@@ -9,6 +9,9 @@ dist-test/
 # Internal planning docs
 .planning/
 
+# Rust implementation (WIP, un-ignore when ready)
+rust/
+
 # Claude Code config (contains agent workflow details)
 CLAUDE.md
 
