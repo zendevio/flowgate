@@ -144,3 +144,7 @@ All architectural decisions, design trade-offs, and proportionality judgments ar
 | Zod        | 4.3.6   | Schema validation at system boundary |
 | Jest       | 30.3.0  | Testing (E2E + unit)                 |
 | Prettier   | 3.5+    | Code formatting                      |
+
+## Rust Implementation
+
+A Rust implementation producing byte-identical output is available in `rust/`. See [`rust/README.md`](rust/README.md) for build instructions and details.
