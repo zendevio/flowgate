@@ -4,16 +4,16 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 use serde_json::{json, Value};
 
-/// Project root (parent of the rust/ directory) for fixture files.
-fn project_root() -> &'static Path {
-    Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap()
+/// Rust crate root directory containing fixture files.
+fn crate_root() -> &'static Path {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
 }
 
 /// Runs the onboard binary with the given commands as stdin JSON.
 fn run(commands: &Value) -> Value {
     let output = Command::cargo_bin("onboard")
         .unwrap()
-        .arg(project_root().join("requirements.json"))
+        .arg(crate_root().join("requirements.json"))
         .write_stdin(serde_json::to_string(commands).unwrap())
         .output()
         .unwrap();
@@ -30,8 +30,8 @@ fn run(commands: &Value) -> Value {
 
 #[test]
 fn golden_test_produces_output_matching_output_json() {
-    let input_path = project_root().join("input.json");
-    let output_path = project_root().join("output.json");
+    let input_path = crate_root().join("input.json");
+    let output_path = crate_root().join("output.json");
 
     let input: Value =
         serde_json::from_str(&std::fs::read_to_string(input_path).unwrap()).unwrap();
@@ -367,7 +367,7 @@ fn empty_commands_returns_empty_array() {
 fn malformed_json_exits_with_code_1() {
     Command::cargo_bin("onboard")
         .unwrap()
-        .arg(project_root().join("requirements.json"))
+        .arg(crate_root().join("requirements.json"))
         .write_stdin("not json")
         .assert()
         .failure()

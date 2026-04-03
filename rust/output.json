@@ -1,0 +1,112 @@
+[
+  {
+    "user": "u1",
+    "flows": [
+      {
+        "name": "de_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "personal_information",
+          "fields": [
+            "full_name",
+            "date_of_birth",
+            "city"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "user": "u2",
+    "flows": [
+      {
+        "name": "us_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "identity_verification",
+          "fields": [
+            "passport_number"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "user": "u9",
+    "flows": []
+  },
+  {
+    "user": "u3",
+    "submission_result": "success",
+    "flows": [
+      {
+        "name": "de_onboarding",
+        "status": "complete"
+      }
+    ]
+  },
+  {
+    "user": "u4",
+    "submission_result": "success",
+    "flows": [
+      {
+        "name": "us_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "identity_verification",
+          "fields": [
+            "passport_number"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "user": "u5",
+    "submission_result": "failure",
+    "submission_errors": [
+      {
+        "field": "passport_number",
+        "rule": "number"
+      }
+    ],
+    "flows": [
+      {
+        "name": "us_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "identity_verification",
+          "fields": [
+            "passport_number"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "user": "u6",
+    "flow": "nonexistent_flow",
+    "error": "flow_not_found"
+  },
+  {
+    "user": "u7",
+    "flow": "us_onboarding",
+    "error": "step_not_found"
+  },
+  {
+    "user": "u8",
+    "submission_result": "success",
+    "flows": [
+      {
+        "name": "us_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "identity_verification",
+          "fields": [
+            "passport_number"
+          ]
+        }
+      }
+    ]
+  }
+]
