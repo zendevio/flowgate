@@ -2,7 +2,7 @@
 
 CLI tool for evaluating user onboarding flows and validating step submissions. Models a simplified KYC onboarding engine where country-specific flows determine verification requirements.
 
-Started as a stateless CLI, then extended to add in-memory persistence, explicit user creation, and partial step submissions. The stateless version is preserved under the `v1-stateless` tag.
+Started as a stateless CLI, then extended to add in-memory persistence, explicit user creation, and partial step submissions. The original stateless version is tagged `v1.0.0`; the extension is `v1.0.1`.
 
 ## Quick Start
 
@@ -181,10 +181,10 @@ I referenced public open-source TypeScript codebases for conventions and layered
 
 | Technology | Version | Purpose                              |
 | ---------- | ------- | ------------------------------------ |
-| TypeScript | 6.0     | Language (strict mode, ESM)          |
+| TypeScript | 7.0     | Language (strict mode, ESM)          |
 | Node.js    | 24 LTS  | Runtime                              |
-| Zod        | 4.4     | Schema validation at system boundary |
-| Jest       | 30.4    | Testing (E2E + unit)                 |
+| Zod        | 4.6     | Schema validation at system boundary |
+| Jest       | 30.5    | Testing (E2E + unit)                 |
 | Prettier   | 3.9     | Code formatting                      |
 
 ## Rust Implementation
