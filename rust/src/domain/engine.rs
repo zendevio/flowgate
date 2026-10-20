@@ -60,7 +60,12 @@ pub(crate) fn find_next_step(
             let step = requirements.steps.get(step_name)?;
             return Some(NextStep {
                 name: step_name.clone(),
-                fields: step.fields.clone(),
+                fields: step
+                    .fields
+                    .iter()
+                    .filter(|field| user.get_field(field).is_none_or(Value::is_null))
+                    .cloned()
+                    .collect(),
             });
         }
     }
@@ -69,7 +74,7 @@ pub(crate) fn find_next_step(
 
 /// Creates a new user with filtered step data merged in.
 /// Only fields defined in the step are copied from data; extra fields are ignored.
-/// The user's id is preserved (it lives outside the fields map).
+/// Existing user fields are preserved unless supplied as step fields.
 pub(crate) fn merge_step_data(
     user: &UserObject,
     data: &Map<String, Value>,
@@ -87,6 +92,7 @@ pub(crate) fn merge_step_data(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
     use serde_json::json;
 
     use crate::domain::types::{DataType, StepConfig};
@@ -132,6 +138,7 @@ mod tests {
 
     fn make_user(fields: &[(&str, Value)]) -> UserObject {
         let mut map = Map::new();
+        map.insert("id".into(), json!("u1"));
         for (k, v) in fields {
             map.insert((*k).to_owned(), v.clone());
         }
@@ -189,6 +196,46 @@ mod tests {
     }
 
     #[test]
+    fn step_incomplete_when_constructor_is_missing() {
+        let mut reqs = make_reqs();
+        reqs.data_types
+            .insert("constructor".into(), DataType::String);
+        reqs.steps.insert(
+            "proto".into(),
+            StepConfig {
+                fields: vec!["constructor".into()],
+            },
+        );
+        assert!(!is_step_complete(&make_user(&[]), "proto", &reqs));
+    }
+
+    #[test]
+    fn id_is_available_for_conditions_and_step_fields() {
+        let user = make_user(&[]);
+        let mut conditions = IndexMap::new();
+        conditions.insert("id".into(), "u1".into());
+        assert!(matches_conditions(&user, &conditions));
+        conditions.insert("id".into(), "other".into());
+        assert!(!matches_conditions(&user, &conditions));
+        let mut reqs = make_reqs();
+        reqs.steps.insert(
+            "identity".into(),
+            StepConfig {
+                fields: vec!["id".into()],
+            },
+        );
+        assert!(is_step_complete(&user, "identity", &reqs));
+        let flow = FlowConfig {
+            conditions: IndexMap::new(),
+            steps: vec!["identity".into(), "personal".into()],
+        };
+        assert_eq!(
+            find_next_step(&user, &flow, &reqs).unwrap().name,
+            "personal"
+        );
+    }
+
+    #[test]
     fn step_incomplete_for_unknown_step() {
         let user = make_user(&[]);
         assert!(!is_step_complete(&user, "nonexistent", &make_reqs()));
@@ -232,6 +279,28 @@ mod tests {
         let result = find_next_step(&user, flow, &reqs).unwrap();
         assert_eq!(result.name, "identity");
         assert_eq!(result.fields, vec!["dob"]);
+    }
+
+    #[rstest]
+    #[case(json!({"name": "Alice"}), vec!["age"])]
+    #[case(json!({"name": null, "age": 30}), vec!["name"])]
+    #[case(json!({"name": "", "age": null}), vec!["age"])]
+    fn find_next_step_returns_only_remaining_fields(
+        #[case] fields: Value,
+        #[case] expected: Vec<&str>,
+    ) {
+        let fields: Vec<_> = fields
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(key, value)| (key.as_str(), value.clone()))
+            .collect();
+        let user = make_user(&fields);
+        let reqs = make_reqs();
+        let flow = reqs.flows.get("gb_flow").unwrap();
+        let next = find_next_step(&user, flow, &reqs).unwrap();
+        assert_eq!(next.name, "personal");
+        assert_eq!(next.fields, expected);
     }
 
     // --- merge_step_data ---
@@ -281,7 +350,8 @@ mod tests {
         data.insert("name".into(), json!("Alice"));
 
         let merged = merge_step_data(&user, &data, &["name".into()]);
-        assert_eq!(merged.id, "u1");
+        assert_eq!(merged.fields.get("id").unwrap(), "u1");
+        assert_eq!(merged.fields.get("name").unwrap(), "Alice");
     }
 
     // --- evaluate_flows ---
@@ -332,6 +402,7 @@ mod tests {
         let results = evaluate_flows(&user, &make_reqs());
         let ns = results[0].next_step.as_ref().unwrap();
         assert_eq!(ns.name, "personal");
+        assert_eq!(ns.fields, vec!["name"]);
     }
 
     #[test]

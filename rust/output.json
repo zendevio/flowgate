@@ -1,5 +1,27 @@
 [
   {
+    "submission_result": "failure",
+    "submission_errors": [
+      {
+        "field": "country",
+        "rule": "required"
+      }
+    ]
+  },
+  {
+    "user": "u1",
+    "submission_result": "success"
+  },
+  {
+    "submission_result": "failure",
+    "submission_errors": [
+      {
+        "field": "user_id",
+        "rule": "duplicate"
+      }
+    ]
+  },
+  {
     "user": "u1",
     "flows": [
       {
@@ -17,6 +39,87 @@
     ]
   },
   {
+    "user": "u1",
+    "submission_result": "success"
+  },
+  {
+    "user": "u1",
+    "flows": [
+      {
+        "name": "de_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "personal_information",
+          "fields": [
+            "city"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "user": "u1",
+    "submission_result": "success"
+  },
+  {
+    "user": "u1",
+    "flows": []
+  },
+  {
+    "user": "u2",
+    "submission_result": "success"
+  },
+  {
+    "user": "u2",
+    "flows": [
+      {
+        "name": "us_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "personal_information",
+          "fields": [
+            "full_name",
+            "date_of_birth",
+            "city"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "user": "u2",
+    "submission_result": "success"
+  },
+  {
+    "user": "u2",
+    "flows": [
+      {
+        "name": "us_onboarding",
+        "status": "pending",
+        "next_step": {
+          "name": "personal_information",
+          "fields": [
+            "date_of_birth"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "user": "u2",
+    "submission_result": "failure",
+    "submission_errors": [
+      {
+        "field": "date_of_birth",
+        "rule": "must_be_date"
+      }
+    ]
+  },
+  {
+    "user": "u2",
+    "submission_result": "success"
+  },
+  {
     "user": "u2",
     "flows": [
       {
@@ -32,81 +135,7 @@
     ]
   },
   {
-    "user": "u9",
-    "flows": []
-  },
-  {
-    "user": "u3",
-    "submission_result": "success",
-    "flows": [
-      {
-        "name": "de_onboarding",
-        "status": "complete"
-      }
-    ]
-  },
-  {
-    "user": "u4",
-    "submission_result": "success",
-    "flows": [
-      {
-        "name": "us_onboarding",
-        "status": "pending",
-        "next_step": {
-          "name": "identity_verification",
-          "fields": [
-            "passport_number"
-          ]
-        }
-      }
-    ]
-  },
-  {
-    "user": "u5",
-    "submission_result": "failure",
-    "submission_errors": [
-      {
-        "field": "passport_number",
-        "rule": "number"
-      }
-    ],
-    "flows": [
-      {
-        "name": "us_onboarding",
-        "status": "pending",
-        "next_step": {
-          "name": "identity_verification",
-          "fields": [
-            "passport_number"
-          ]
-        }
-      }
-    ]
-  },
-  {
-    "user": "u6",
-    "flow": "nonexistent_flow",
-    "error": "flow_not_found"
-  },
-  {
-    "user": "u7",
-    "flow": "us_onboarding",
-    "error": "step_not_found"
-  },
-  {
-    "user": "u8",
-    "submission_result": "success",
-    "flows": [
-      {
-        "name": "us_onboarding",
-        "status": "pending",
-        "next_step": {
-          "name": "identity_verification",
-          "fields": [
-            "passport_number"
-          ]
-        }
-      }
-    ]
+    "user": "u2",
+    "submission_result": "success"
   }
 ]

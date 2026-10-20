@@ -72,7 +72,7 @@ fn is_leap_year(year: u32) -> bool {
 
 /// Validates submitted data fields against expected types, iterating in step
 /// field definition order. Missing fields fail validation with the expected
-/// type as the error rule. Extra data fields are silently ignored.
+/// must_be_<type> as the error rule. Extra data fields are silently ignored.
 pub(crate) fn validate_step_fields(
     step_fields: &[String],
     data: &Map<String, Value>,
@@ -102,6 +102,10 @@ pub(crate) fn validate_step_fields(
 pub(crate) fn validate_requirements_integrity(requirements: &Requirements) -> Result<(), String> {
     for (step_name, step) in &requirements.steps {
         for field in &step.fields {
+            // The user id is identity, not step data: a submit must never overwrite it
+            if field == "id" {
+                return Err(format!("Step '{}' uses reserved field 'id'", step_name));
+            }
             if !requirements.data_types.contains_key(field) {
                 return Err(format!(
                     "Step '{}' references field '{}' not defined in data_types",
@@ -138,6 +142,8 @@ mod tests {
     #[rstest]
     #[case("2026-01-15", true)]
     #[case("2024-02-29", true)]
+    #[case("0000-02-29", true)]
+    #[case("1900-02-29", false)]
     #[case("2000-01-01", true)]
     #[case("1985-12-12", true)]
     #[case("01-15-2026", false)]
@@ -172,7 +178,7 @@ mod tests {
     #[case(DataType::Number, json!(42), true)]
     #[case(DataType::Number, json!(0), true)]
     #[case(DataType::Number, json!(-5), true)]
-    #[case(DataType::Number, json!(3.14), true)]
+    #[case(DataType::Number, json!(3.5), true)]
     #[case(DataType::Number, json!("42"), false)]
     #[case(DataType::Number, json!(true), false)]
     #[case(DataType::Number, Value::Null, false)]
@@ -224,9 +230,9 @@ mod tests {
         let errors = validate_step_fields(&["age".into(), "name".into()], &data, &dt);
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0].field, "age");
-        assert_eq!(errors[0].rule, "number");
+        assert_eq!(errors[0].rule, "must_be_number");
         assert_eq!(errors[1].field, "name");
-        assert_eq!(errors[1].rule, "string");
+        assert_eq!(errors[1].rule, "must_be_string");
     }
 
     #[test]
@@ -238,7 +244,7 @@ mod tests {
         let errors = validate_step_fields(&["dob".into()], &data, &dt);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].field, "dob");
-        assert_eq!(errors[0].rule, "date");
+        assert_eq!(errors[0].rule, "must_be_date");
     }
 
     #[test]
@@ -278,7 +284,7 @@ mod tests {
         let errors = validate_step_fields(&["count".into()], &data, &dt);
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].field, "count");
-        assert_eq!(errors[0].rule, "number");
+        assert_eq!(errors[0].rule, "must_be_number");
     }
 
     // --- validate_requirements_integrity ---
@@ -330,6 +336,26 @@ mod tests {
             err.contains("Step 'identity' references field 'name' not defined in data_types"),
             "Unexpected error: {err}"
         );
+    }
+
+    #[test]
+    fn integrity_fails_when_step_uses_reserved_id_field() {
+        let mut dt = IndexMap::new();
+        dt.insert("id".into(), DataType::String);
+        let mut steps = IndexMap::new();
+        steps.insert(
+            "identity".into(),
+            StepConfig {
+                fields: vec!["id".into()],
+            },
+        );
+        let reqs = Requirements {
+            data_types: dt,
+            steps,
+            flows: IndexMap::new(),
+        };
+        let err = validate_requirements_integrity(&reqs).unwrap_err();
+        assert_eq!(err, "Step 'identity' uses reserved field 'id'");
     }
 
     #[test]

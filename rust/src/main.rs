@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use clap::Parser;
 
 use cli::handlers::handle_command;
-use domain::types::{Command, Requirements};
+use domain::types::{Command, Requirements, UserStore};
 use domain::validation::validate_requirements_integrity;
 
 /// FlowGate: evaluate user onboarding flows and validate step submissions.
@@ -84,12 +84,19 @@ fn run() -> Result<()> {
 
     let stdin_clean = stdin_raw.strip_prefix('\u{feff}').unwrap_or(&stdin_raw);
 
-    let commands: Vec<Command> = serde_json::from_str(stdin_clean).map_err(CliError::InputParse)?;
+    let raw: Vec<serde_json::Value> =
+        serde_json::from_str(stdin_clean).map_err(CliError::InputParse)?;
+    let commands: Vec<Command> = raw
+        .into_iter()
+        .map(serde_json::from_value)
+        .collect::<std::result::Result<_, _>>()
+        .map_err(CliError::InputParse)?;
 
     // Dispatch all commands and collect results
+    let mut store = UserStore::new();
     let results: Vec<_> = commands
         .into_iter()
-        .map(|cmd| handle_command(cmd, &requirements))
+        .map(|cmd| handle_command(cmd, &requirements, &mut store))
         .collect();
 
     // Write JSON output to stdout with trailing newline

@@ -17,9 +17,9 @@ impl DataType {
     /// Returns the string representation used in submission error rules.
     pub(crate) fn as_rule_str(&self) -> &'static str {
         match self {
-            DataType::String => "string",
-            DataType::Number => "number",
-            DataType::Date => "date",
+            DataType::String => "must_be_string",
+            DataType::Number => "must_be_number",
+            DataType::Date => "must_be_date",
         }
     }
 }
@@ -47,27 +47,28 @@ pub(crate) struct Requirements {
 
 // --- User Object ---
 
-/// A user with a required id and arbitrary additional fields.
-#[derive(Debug, Clone, Deserialize)]
+/// A user with a required id, also stored alongside the other user fields.
+#[derive(Debug, Clone)]
 pub(crate) struct UserObject {
     pub id: String,
-    #[serde(flatten)]
     pub fields: Map<String, Value>,
 }
 
 impl UserObject {
-    /// Looks up a field value by name, checking both the extracted `id` and the
-    /// dynamic `fields` map. This ensures condition matching and step completion
-    /// work correctly for all user properties.
+    /// Looks up a user property, including `id`, in the stored fields.
     pub(crate) fn get_field(&self, key: &str) -> Option<&Value> {
-        if key == "id" {
-            // id is extracted by serde into a named field; synthesize a lookup
-            // by returning None and letting callers compare directly when needed.
-            // In practice, conditions and step fields never reference "id".
-            return None;
-        }
         self.fields.get(key)
     }
+}
+
+/// Users persisted for one batch of commands.
+pub(crate) type UserStore = IndexMap<String, UserObject>;
+
+/// User creation input with country validated by the command handler.
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct CreateUserInput {
+    pub id: String,
+    pub country: Option<String>,
 }
 
 // --- Commands (deserialized from stdin) ---
@@ -76,11 +77,14 @@ impl UserObject {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub(crate) enum Command {
+    CreateUser {
+        user: CreateUserInput,
+    },
     GetFlows {
-        user: UserObject,
+        user_id: String,
     },
     Submit {
-        user: UserObject,
+        user_id: String,
         flow: String,
         step: String,
         data: Map<String, Value>,
@@ -94,6 +98,8 @@ pub(crate) enum Command {
 #[serde(untagged)]
 pub(crate) enum Response {
     GetFlows(GetFlowsResponse),
+    UserNotFound(UserNotFoundResponse),
+    CreateUserFailure(CreateUserFailureResponse),
     SubmitSuccess(SubmitSuccessResponse),
     SubmitFailure(SubmitFailureResponse),
     StructuralError(StructuralErrorResponse),
@@ -106,24 +112,36 @@ pub(crate) struct GetFlowsResponse {
     pub flows: Vec<FlowOutput>,
 }
 
-/// Shape 2: successful submission with merged user flows.
+/// Shape 5: unknown user response for get_flows.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct UserNotFoundResponse {
+    pub user: String,
+    pub error: StructuralErrorKind,
+}
+
+/// Shape 6: failed creation response without a user key.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct CreateUserFailureResponse {
+    pub submission_result: &'static str,
+    pub submission_errors: Vec<SubmissionError>,
+}
+
+/// Shape 2: successful creation or submission.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct SubmitSuccessResponse {
     pub user: String,
     pub submission_result: &'static str,
-    pub flows: Vec<FlowOutput>,
 }
 
-/// Shape 3: failed submission with validation errors and original user flows.
+/// Shape 3: failed submission with validation errors.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct SubmitFailureResponse {
     pub user: String,
     pub submission_result: &'static str,
     pub submission_errors: Vec<SubmissionError>,
-    pub flows: Vec<FlowOutput>,
 }
 
-/// Shape 4: structural error (flow/step not found, wrong step order).
+/// Shape 4: structural error (user/flow/step not found, wrong step order).
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct StructuralErrorResponse {
     pub user: String,
@@ -131,10 +149,11 @@ pub(crate) struct StructuralErrorResponse {
     pub error: StructuralErrorKind,
 }
 
-/// Structural error categories for submit command validation.
+/// Structural error categories, including user_not_found for get_flows and submit.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) enum StructuralErrorKind {
+    UserNotFound,
     FlowNotFound,
     StepNotFound,
     NotNextStep,
@@ -145,16 +164,14 @@ pub(crate) enum StructuralErrorKind {
 pub(crate) struct FlowOutput {
     pub name: String,
     pub status: FlowStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub next_step: Option<NextStepOutput>,
+    pub next_step: NextStepOutput,
 }
 
-/// Flow completion status.
+/// Only pending flows are returned; completed flows are omitted.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum FlowStatus {
     Pending,
-    Complete,
 }
 
 /// Next step details included when a flow is pending.
@@ -183,25 +200,4 @@ pub(crate) struct FlowEvaluation {
 pub(crate) struct NextStep {
     pub name: String,
     pub fields: Vec<String>,
-}
-
-impl FlowEvaluation {
-    /// Converts this evaluation into the output representation.
-    pub(crate) fn into_flow_output(self) -> FlowOutput {
-        match self.next_step {
-            Some(next) => FlowOutput {
-                name: self.name,
-                status: FlowStatus::Pending,
-                next_step: Some(NextStepOutput {
-                    name: next.name,
-                    fields: next.fields,
-                }),
-            },
-            None => FlowOutput {
-                name: self.name,
-                status: FlowStatus::Complete,
-                next_step: None,
-            },
-        }
-    }
 }
