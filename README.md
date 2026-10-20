@@ -2,6 +2,8 @@
 
 CLI tool for evaluating user onboarding flows and validating step submissions. Models a simplified KYC onboarding engine where country-specific flows determine verification requirements.
 
+Started as a stateless CLI, then extended to add in-memory persistence, explicit user creation, and partial step submissions. The stateless version is preserved under the `v1-stateless` tag.
+
 ## Quick Start
 
 **Prerequisites:** Node.js 24+ (LTS)
@@ -24,6 +26,36 @@ To verify output matches the expected result:
 npm run verify
 ```
 
+## How It Works
+
+`requirements.json` defines data types, steps (lists of fields), and flows (conditions plus an ordered list of steps). stdin is a JSON array of commands, processed in order against an in-memory user store that lives for the duration of one run. stdout is a JSON array with one result per command.
+
+### Commands
+
+| Command       | Input                             | Success response                  |
+| ------------- | --------------------------------- | --------------------------------- |
+| `create_user` | `user: { id, country }`           | `{ user, submission_result }`     |
+| `get_flows`   | `user_id`                         | `{ user, flows }` (pending flows) |
+| `submit`      | `user_id`, `flow`, `step`, `data` | `{ user, submission_result }`     |
+
+Failure responses:
+
+| Situation                         | Response                                                        |
+| --------------------------------- | --------------------------------------------------------------- |
+| `create_user` with no country     | `{ submission_result, submission_errors: [country/required] }`  |
+| `create_user` with a duplicate id | `{ submission_result, submission_errors: [user_id/duplicate] }` |
+| Unknown user on `get_flows`       | `{ user, error: 'user_not_found' }`                             |
+| Structural error on `submit`      | `{ user, flow, error }`                                         |
+| Invalid or missing submit data    | `{ user, submission_result, submission_errors }`                |
+
+### Submit error priority
+
+1. `user_not_found`: the user was never created
+2. `flow_not_found`: the flow does not exist, or its conditions do not match the user
+3. `step_not_found`: the step is not part of this flow
+4. `not_next_step`: the step is not the current step (a partially filled step is still current)
+5. Field validation: `must_be_string`, `must_be_number`, `must_be_date`, ordered by step field definition
+
 ## Architecture
 
 Two-layer clean architecture with inward-only dependencies:
@@ -31,79 +63,89 @@ Two-layer clean architecture with inward-only dependencies:
 ```
 src/
   domain/       Pure logic, zero external deps, zero I/O
-    types.ts      String unions, interfaces, assertNever
+    types.ts      String unions, interfaces, UserStore type, assertNever
     engine.ts     Flow evaluation, condition matching, step progression, data merging
     validation.ts Field type validation, date checks, requirements integrity
     index.ts      Barrel export
   cli/          I/O, Zod schemas, system boundary
-    main.ts       EPIPE handlers, TTY check, arg parsing, stdin, dispatch, stdout
-    handlers.ts   Command dispatch, response builders (4 shapes)
+    main.ts       EPIPE handlers, TTY check, arg parsing, stdin, store creation, dispatch, stdout
+    handlers.ts   Command dispatch, response builders
     schemas.ts    Zod schemas for requirements and input validation
     index.ts      Barrel export
 ```
 
-The domain layer never imports from cli/. The system is a pure function: given the same user state and requirements, it always produces the same output.
+The domain layer never imports from cli/ and holds no state: every domain function takes the user and requirements as arguments. State lives in a single `Map` created in `main.ts` and passed to the handlers, so each run starts from an empty store and tests stay isolated.
 
 **Data flow:**
 
 ```
-stdin JSON -> Zod parse -> for each command:
+stdin JSON -> Zod parse -> new UserStore -> for each command:
   -> handleCommand (dispatch on command type)
-    -> get_flows: evaluateFlows -> buildGetFlowsResponse
-    -> submit:    flow/step/validation checks -> merge or error -> response builder
+    -> create_user: country check -> duplicate check -> store
+    -> get_flows:   store lookup -> evaluateFlows -> pending flows only
+    -> submit:      store lookup -> flow/step checks -> validate provided fields -> merge and store
   -> JSON.stringify(results) -> stdout
 ```
 
-**Why 2 layers, not 4?** A full clean architecture (domain/application/infrastructure/cli) would produce two single-file layers for ~450 LOC. Two directories with a clear boundary shows the same principle without the ceremony. The application layer would just delegate, and the infrastructure layer would just read files. I mention this as a scaling pattern in "What I'd Add."
+**Why 2 layers, not 4?** A full clean architecture (domain/application/infrastructure/cli) would produce two single-file layers at this size. Two directories with a clear boundary shows the same principle without the ceremony.
 
 ## Design Decisions
 
-### E2E-first testing
+### Injected store, not module state
 
-Integration tests run the actual `./onboard` binary as a subprocess and compare JSON output. Unit tests supplement these for algorithmic code only (date validation, type checking, condition matching). This validates real behavior rather than implementation details.
+The user store is created per run in `main.ts` and passed into `handleCommand`. A module-level `Map` would also work for a single CLI invocation, but it makes the handlers impure, leaks state between in-process callers, and hides the dependency. Swapping the `Map` for a database-backed repository later only changes the type passed in.
 
-### Filtered merge on submit success
+### Country is optional in the schema on purpose
 
-On a successful submit, only fields defined in the step are merged onto the user object. A raw `{ ...user, ...data }` spread would let extra fields like `country` or `id` overwrite user properties. The merge iterates `stepFields` and picks only matching keys from data.
+The spec requires a per-command `{ field: 'country', rule: 'required' }` response when country is missing. Marking `country` as required in the Zod schema would make the whole input fail to parse, aborting the batch instead of answering that one command. So the schema validates shape, and the handler enforces the business rule. The same reasoning applies to any rule that must produce a structured per-command error.
+
+### Partial submissions, but never empty ones
+
+A submit validates only the step fields present in `data`, merges them into the stored user, and leaves the step pending until every field is filled. A submit that contains none of the step's fields is rejected with `{ field: 'data', rule: 'required' }`: accepting it would report success while storing nothing. A failed submit never stores anything, even the valid fields in it.
+
+### Filtered merge
+
+Only fields defined in the step are merged onto the user. A raw `{ ...user, ...data }` spread would let fields like `id` or `country` be overwritten. Key presence is checked with `Object.hasOwn`, never `in`, so inherited names such as `constructor` cannot match.
 
 ### Zod at the boundary, domain types inside
 
-Zod validates external input (requirements file and stdin commands) at the CLI layer. The domain layer uses plain TypeScript interfaces with no runtime validation library. This keeps the domain pure and portable.
+Zod validates external input (requirements file and stdin commands) at the CLI layer. The domain layer uses plain TypeScript interfaces with no runtime validation library, which keeps it pure and portable (the Rust port mirrors it one to one).
 
 ### Response builders over error classes
 
-Four response shapes, each built by a dedicated function with exact key ordering. For ~450 LOC, builder functions are simpler than a class hierarchy. The builders guarantee JSON key order matches the spec, which matters for output matching.
+Each response shape is built by a dedicated function with exact key ordering. At this size, builder functions are simpler than a class hierarchy, and they guarantee the JSON key order the contract requires. The example test compares raw stdout byte for byte, so key order is enforced by tests, not just by convention.
 
 ### Proportionality
 
 I dropped several production patterns that would be disproportionate at this scale:
 
-- **Branded types** (FlowId, StepId): No ID-swap risk in a stateless CLI
-- **Result types**: Exceptions are simpler here; Result<T, E> is a scaling pattern
+- **Branded types** (UserId, FlowId, StepId): worth adding now that IDs are passed around more, but still low risk at this size
+- **Result types**: exceptions for real failures, response builders for expected ones
 - **ESLint**: `prettier + tsc --noEmit` covers formatting and type safety
-- **4-layer architecture**: Two layers are enough when application/infrastructure would each be one file
-
-Each of these is worth adding as the codebase grows.
+- **4-layer architecture**: two layers are enough when application/infrastructure would each be one file
 
 ## Edge Cases and Assumptions
 
-| Ambiguity                         | Decision                                                          | Rationale                                                               |
-| --------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Missing fields in submit data     | Validation error with expected data_type as `rule`                | `undefined` fails every type check; success always means step completed |
-| `not_next_step` response shape    | Structural error: `{ user, flow, error }`                         | Pattern-matches the other structural errors (zero examples in spec)     |
-| User object field type validation | Presence-only for step completion; type validation only on submit | Spec scopes type rules under the "submit > Rules" section               |
-| "Valid YYYY-MM-DD" meaning        | Full calendar validation (leap years, days in month)              | "Valid" implies a real date, not just a regex match                     |
-| Conditions matching semantics     | AND (all must match), missing key = no match                      | Multiple keys in a conditions object naturally implies conjunction      |
-| Re-submitting a completed step    | Returns `not_next_step`                                           | A completed step is not the current next step                           |
-| Extra fields in submit data       | Silently ignored                                                  | Validation iterates step fields, not data keys                          |
+| Ambiguity                                 | Decision                                             | Rationale                                                          |
+| ----------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------ |
+| Command for a user that was never created | `user_not_found` (checked first on submit)           | Distinguishes "no such user" from "no matching flow"               |
+| Submit with no fields for the step        | Failure: `{ field: 'data', rule: 'required' }`       | Success must mean something was stored                             |
+| Field present with `null` value           | Validation error for that field                      | `null` is not a valid string, number, or date                      |
+| Empty string for country                  | Treated as missing                                   | An empty country cannot match any flow                             |
+| Both country missing and id duplicate     | Country error reported                               | Validate the request before checking state                         |
+| "Valid YYYY-MM-DD" meaning                | Full calendar validation (leap years, days in month) | "Valid" implies a real date, not just a regex match                |
+| Conditions matching semantics             | AND (all must match), missing key = no match         | Multiple keys in a conditions object naturally implies conjunction |
+| Re-submitting a completed step            | `not_next_step`                                      | A completed step is not the current step                           |
+| Extra fields in submit data               | Silently ignored                                     | Validation iterates step fields, not data keys                     |
+| Completed flows in `get_flows`            | Omitted                                              | Required by the extension spec                                     |
 
 ## Testing
 
-92 tests across 3 suites:
+117 tests across 3 suites:
 
-- **Unit: validation** (52 tests) - Table-driven `it.each` for `isValidDate` (17 cases), `validateFieldType` (26 cases across string/number/date including arrays and objects), plus `validateStepFields` and `validateRequirementsIntegrity`
-- **Unit: engine** (21 tests) - `matchesConditions`, `isStepComplete`, `findNextStep`, `mergeStepData`, `evaluateFlows`, null field handling
-- **Integration: CLI** (19 tests) - Full example output comparison, plus edge cases: `not_next_step`, missing fields, numeric strings, extra fields, invalid dates, impossible calendar dates, empty strings, multi-step completion, prototype pollution guards, null field values, error exit codes
+- **Unit: validation** (56 tests): table-driven `it.each` for `isValidDate`, `validateFieldType` across string/number/date including arrays and objects, plus `validateStepFields` and `validateRequirementsIntegrity`
+- **Unit: engine** (23 tests): `matchesConditions`, `isStepComplete`, `findNextStep` (remaining fields), `mergeStepData`, `evaluateFlows`
+- **Integration: CLI** (38 tests): byte-identical comparison against `output.json`, plus `create_user` rules, unknown users, partial submissions across commands, empty and invalid submissions, failed commands leaving state untouched, error priority, prototype-like flow names, and response key order
 
 ```bash
 npm test                # Run all tests
@@ -113,38 +155,38 @@ npm run verify          # Compare output against expected
 
 ## What I'd Add With More Time
 
-**Compound conditions.** Support AND/OR operators and range checks in flow conditions. The `matchesConditions` function currently only handles exact equality on all keys. I would introduce a condition evaluator that supports `{ operator: 'gte', field: 'age', value: 18 }` style rules, keeping the current flat format as syntactic sugar for `{ operator: 'eq' }`.
+**Persistent storage.** Replace the `Map` with a repository interface backed by a database. Because the store is already injected, this is a change at the edge, not in the domain.
 
-**New field types.** Phone number patterns, SSN format, document upload references. The `validateFieldType` switch makes adding types straightforward: one new case per type with its validation logic. A validator registry pattern would formalize this.
+**Compound conditions.** Support AND/OR operators and range checks in flow conditions, keeping the current flat format as shorthand for equality.
 
-**Structured logging.** Pino for JSON log lines with severity, timestamps, and correlation IDs per command. Audit logging for every submit attempt (success or failure) with user ID and flow name, which matters for compliance in KYC systems.
+**New field types.** Phone numbers, document references. The `validateFieldType` switch makes this one case per type; a validator registry would formalize it.
 
-**Input size limits.** Configurable max stdin buffer (default 10MB) to prevent out-of-memory on malformed input. Reject before buffering with a clear error message.
+**Structured logging.** JSON log lines with correlation IDs per command, and an audit log of every submit attempt (user ID and flow name only, no submitted values), which matters for compliance in KYC systems.
 
-**Schema versioning.** A `version` field in requirements.json, validated at startup. Reject unsupported versions with a migration message rather than producing confusing parse errors.
+**Input size limits.** A configurable max stdin buffer to reject oversized input before parsing.
 
-**Docker distribution.** Multi-stage Dockerfile: build stage with `npm ci && npm run build`, runtime stage with only `dist/` and production dependencies. Keeps the image minimal.
+**Schema versioning.** A `version` field in requirements.json, validated at startup.
 
 ## AI Usage
 
-I used Claude Code as a development assistant throughout this project. Specifically:
+I used AI coding assistants throughout, and every design decision was mine to make and defend:
 
-- **Research and planning:** Analyzing the spec, identifying edge cases, resolving ambiguities, researching TypeScript/Jest/Zod ecosystem compatibility
-- **Code generation:** Drafting source files, tests, and configuration based on my architectural decisions
-- **Validation:** Reviewing code against the spec, checking for correctness issues, verifying edge case handling
+- **Original version:** Claude Code for researching the spec and its ambiguities, drafting source, tests, and configuration from my architectural decisions, and reviewing against the spec.
+- **Extension:** implemented with Claude Code, with me directing the approach (test-first, types first, then handlers) and reviewing the result.
+- **Cleanup:** Claude Code and OpenAI Codex for injecting the store, adding `user_not_found` and empty-submission handling, restoring edge-case tests, porting the extension to Rust, and independent code review of each change.
 
-All architectural decisions, design trade-offs, and proportionality judgments are my own. I referenced public open-source TypeScript codebases for conventions and layered on additional strictness appropriate for a backend CLI. Every line of code is defensible and I can walk through any part of the implementation.
+I referenced public open-source TypeScript codebases for conventions and layered on additional strictness appropriate for a backend CLI.
 
 ## Technologies
 
 | Technology | Version | Purpose                              |
 | ---------- | ------- | ------------------------------------ |
-| TypeScript | 6.0.2   | Language (strict mode, ESM)          |
+| TypeScript | 6.0     | Language (strict mode, ESM)          |
 | Node.js    | 24 LTS  | Runtime                              |
-| Zod        | 4.3.6   | Schema validation at system boundary |
-| Jest       | 30.3.0  | Testing (E2E + unit)                 |
-| Prettier   | 3.5+    | Code formatting                      |
+| Zod        | 4.4     | Schema validation at system boundary |
+| Jest       | 30.4    | Testing (E2E + unit)                 |
+| Prettier   | 3.9     | Code formatting                      |
 
 ## Rust Implementation
 
-A Rust implementation producing byte-identical output is available in `rust/`. See [`rust/README.md`](rust/README.md) for build instructions and details.
+A Rust implementation with the same behaviour and byte-identical output is in `rust/`. See [`rust/README.md`](rust/README.md) for build instructions and details.
