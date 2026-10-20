@@ -6,14 +6,14 @@ dist/
 dist-test/
 *.tsbuildinfo
 
-# Internal planning docs
+# Local notes
 .planning/
 rust/.planning/
 
 # Rust build output
 rust/target/
 
-# Claude Code config (contains agent workflow details)
+# Local editor and tooling config
 CLAUDE.md
 
 # IDE
