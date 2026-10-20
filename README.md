@@ -1,8 +1,7 @@
 # FlowGate
 
 [![tests](https://img.shields.io/github/actions/workflow/status/zendevio/flowgate/ci.yml?branch=main&label=tests&logo=github)](https://github.com/zendevio/flowgate/actions/workflows/ci.yml)
-[![rust tests](https://img.shields.io/github/actions/workflow/status/zendevio/flowgate/rust-ci.yml?branch=main&label=rust%20tests&logo=rust)](https://github.com/zendevio/flowgate/actions/workflows/rust-ci.yml)
-[![typescript](https://img.shields.io/github/package-json/dependency-version/zendevio/flowgate/dev/typescript?logo=typescript&logoColor=white&color=3178C6)](https://www.typescriptlang.org/)
+[![typescript](https://img.shields.io/badge/typescript-7.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![node](https://img.shields.io/badge/node-24%20LTS-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![rust](https://img.shields.io/badge/rust-1.85%2B-orange?logo=rust)](rust/README.md)
 [![license](https://img.shields.io/github/license/zendevio/flowgate)](LICENSE)

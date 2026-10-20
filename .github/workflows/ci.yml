@@ -1,7 +1,7 @@
 name: CI
 on: [push, pull_request]
 jobs:
-  build-and-test:
+  typescript:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -9,6 +9,30 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci
+      - run: npm run lint
       - run: npm run build
       - run: npm test
       - run: npm run verify
+
+  rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo build --release
+      - run: cargo test
+      - run: cp target/release/onboard . && ./onboard requirements.json < input.json | diff - output.json
