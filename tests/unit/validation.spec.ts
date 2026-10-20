@@ -13,6 +13,8 @@ describe('isValidDate', () => {
     ['2024-02-29', true],
     ['2000-01-01', true],
     ['1985-12-12', true],
+    ['0000-02-29', true],
+    ['1900-02-29', false],
     ['01-15-2026', false],
     ['2026/01/15', false],
     ['2026-1-5', false],
@@ -77,14 +79,14 @@ describe('validateStepFields', () => {
       { age: 'number', name: 'string' }
     );
     expect(errors).toEqual([
-      { field: 'age', rule: 'number' },
-      { field: 'name', rule: 'string' },
+      { field: 'age', rule: 'must_be_number' },
+      { field: 'name', rule: 'must_be_string' },
     ]);
   });
 
-  it('returns error for missing fields with expected data_type as rule', () => {
+  it('returns error for missing fields with must_be_ prefixed rule', () => {
     const errors = validateStepFields(['dob'], {}, { dob: 'date' });
-    expect(errors).toEqual([{ field: 'dob', rule: 'date' }]);
+    expect(errors).toEqual([{ field: 'dob', rule: 'must_be_date' }]);
   });
 
   it('ignores extra fields in data not defined in step', () => {
@@ -105,9 +107,9 @@ describe('validateStepFields', () => {
     expect(errors).toHaveLength(3);
   });
 
-  it('returns error with rule number when string submitted for number field', () => {
+  it('returns error with must_be_number rule when string submitted for number field', () => {
     const errors = validateStepFields(['count'], { count: '5' }, { count: 'number' });
-    expect(errors).toEqual([{ field: 'count', rule: 'number' }]);
+    expect(errors).toEqual([{ field: 'count', rule: 'must_be_number' }]);
   });
 });
 
@@ -140,6 +142,28 @@ describe('validateRequirementsIntegrity', () => {
     };
     expect(() => validateRequirementsIntegrity(req)).toThrow(
       "Flow 'kyc' references step 'missing_step' not defined in steps"
+    );
+  });
+
+  it('throws when a step uses the reserved id field', () => {
+    const req: Requirements = {
+      data_types: { id: 'string' },
+      steps: { identity: { fields: ['id'] } },
+      flows: {},
+    };
+    expect(() => validateRequirementsIntegrity(req)).toThrow(
+      "Step 'identity' uses reserved field 'id'"
+    );
+  });
+
+  it('does not treat inherited properties as defined references', () => {
+    const req: Requirements = {
+      data_types: {},
+      steps: { identity: { fields: ['constructor'] } },
+      flows: { kyc: { conditions: {}, steps: ['toString'] } },
+    };
+    expect(() => validateRequirementsIntegrity(req)).toThrow(
+      "Step 'identity' references field 'constructor' not defined in data_types"
     );
   });
 });

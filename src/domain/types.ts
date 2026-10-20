@@ -3,13 +3,19 @@
 export const DATA_TYPES = ['string', 'number', 'date'] as const;
 export type DataType = (typeof DATA_TYPES)[number];
 
-export const FLOW_STATUSES = ['pending', 'complete'] as const;
+// Completed flows are omitted from output, so only pending is ever emitted
+export const FLOW_STATUSES = ['pending'] as const;
 export type FlowStatus = (typeof FLOW_STATUSES)[number];
 
-export const COMMAND_TYPES = ['get_flows', 'submit'] as const;
+export const COMMAND_TYPES = ['create_user', 'get_flows', 'submit'] as const;
 export type CommandType = (typeof COMMAND_TYPES)[number];
 
-export const ERROR_TYPES = ['flow_not_found', 'step_not_found', 'not_next_step'] as const;
+export const ERROR_TYPES = [
+  'user_not_found',
+  'flow_not_found',
+  'step_not_found',
+  'not_next_step',
+] as const;
 export type ErrorType = (typeof ERROR_TYPES)[number];
 
 export const SUBMISSION_RESULTS = ['success', 'failure'] as const;
@@ -42,22 +48,31 @@ export interface SubmissionError {
   rule: string;
 }
 
+// In-memory persistence, scoped to a single CLI run
+export type UserStore = Map<string, UserObject>;
+
 // Command interfaces
+
+export interface CreateUserCommand {
+  command: 'create_user';
+  // Optional at the type level: a missing country is a per-command business error, not a parse failure
+  user: { id: string; country?: string | null };
+}
 
 export interface GetFlowsCommand {
   command: 'get_flows';
-  user: UserObject;
+  user_id: string;
 }
 
 export interface SubmitCommand {
   command: 'submit';
-  user: UserObject;
+  user_id: string;
   flow: string;
   step: string;
   data: Record<string, unknown>;
 }
 
-export type Command = GetFlowsCommand | SubmitCommand;
+export type Command = CreateUserCommand | GetFlowsCommand | SubmitCommand;
 
 // Exhaustive check utility
 

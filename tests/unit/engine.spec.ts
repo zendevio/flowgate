@@ -54,6 +54,14 @@ describe('isStepComplete', () => {
     expect(isStepComplete(user, 'personal', makeReqs())).toBe(false);
   });
 
+  it('does not count inherited properties as filled fields', () => {
+    const reqs = makeReqs({
+      data_types: { constructor: 'string' as const },
+      steps: { proto: { fields: ['constructor'] } },
+    });
+    expect(isStepComplete(makeUser(), 'proto', reqs)).toBe(false);
+  });
+
   it('returns false when step name is not in requirements', () => {
     expect(isStepComplete(makeUser(), 'nonexistent', makeReqs())).toBe(false);
   });
@@ -67,7 +75,7 @@ describe('isStepComplete', () => {
 describe('findNextStep', () => {
   const flow: FlowConfig = { conditions: { country: 'GB' }, steps: ['personal', 'identity'] };
 
-  it('returns first incomplete step with its fields', () => {
+  it('returns first incomplete step with remaining fields only', () => {
     const result = findNextStep(makeUser(), flow, makeReqs());
     expect(result).toEqual({ name: 'personal', fields: ['name', 'age'] });
   });
@@ -81,6 +89,12 @@ describe('findNextStep', () => {
     const user = makeUser({ name: 'Alice', age: 30 });
     const result = findNextStep(user, flow, makeReqs());
     expect(result).toEqual({ name: 'identity', fields: ['dob'] });
+  });
+
+  it('returns only remaining unfilled fields for partially completed step', () => {
+    const user = makeUser({ name: 'Alice' });
+    const result = findNextStep(user, flow, makeReqs());
+    expect(result).toEqual({ name: 'personal', fields: ['age'] });
   });
 });
 
@@ -142,7 +156,7 @@ describe('evaluateFlows', () => {
     const user = makeUser({ country: 'GB', name: null, age: 30 });
     const results = evaluateFlows(user, makeReqs());
     expect(results).toEqual([
-      { name: 'gb_flow', nextStep: { name: 'personal', fields: ['name', 'age'] } },
+      { name: 'gb_flow', nextStep: { name: 'personal', fields: ['name'] } },
     ]);
   });
 

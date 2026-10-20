@@ -1,6 +1,8 @@
 import type { DataType, Requirements, SubmissionError } from './types.js';
 import { assertNever } from './types.js';
 
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] as const;
+
 export function isValidDate(value: string): boolean {
   const regex = /^\d{4}-\d{2}-\d{2}$/;
   if (!regex.test(value)) {
@@ -20,7 +22,9 @@ export function isValidDate(value: string): boolean {
     return false;
   }
 
-  const daysInMonth = new Date(year, month, 0).getDate();
+  // Arithmetic leap rule: Date maps years 0-99 to 1900-1999, which misjudges year 0
+  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const daysInMonth = month === 2 && isLeapYear ? 29 : DAYS_IN_MONTH[month - 1]!;
   return day <= daysInMonth;
 }
 
@@ -51,7 +55,7 @@ export function validateStepFields(
     }
     const value = data[field];
     if (!validateFieldType(expectedType, value)) {
-      errors.push({ field, rule: expectedType });
+      errors.push({ field, rule: `must_be_${expectedType}` });
     }
   }
 
@@ -61,7 +65,11 @@ export function validateStepFields(
 export function validateRequirementsIntegrity(requirements: Requirements): void {
   for (const [stepName, step] of Object.entries(requirements.steps)) {
     for (const field of step.fields) {
-      if (!(field in requirements.data_types)) {
+      // The user id is identity, not step data: a submit must never overwrite it
+      if (field === 'id') {
+        throw new Error(`Step '${stepName}' uses reserved field 'id'`);
+      }
+      if (!Object.hasOwn(requirements.data_types, field)) {
         throw new Error(`Step '${stepName}' references field '${field}' not defined in data_types`);
       }
     }
@@ -69,7 +77,7 @@ export function validateRequirementsIntegrity(requirements: Requirements): void 
 
   for (const [flowName, flow] of Object.entries(requirements.flows)) {
     for (const stepName of flow.steps) {
-      if (!(stepName in requirements.steps)) {
+      if (!Object.hasOwn(requirements.steps, stepName)) {
         throw new Error(`Flow '${flowName}' references step '${stepName}' not defined in steps`);
       }
     }

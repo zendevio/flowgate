@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { RequirementsSchema, InputSchema } from './schemas.js';
 import { handleCommand } from './handlers.js';
-import { validateRequirementsIntegrity } from '../domain/index.js';
+import { validateRequirementsIntegrity, type UserStore } from '../domain/index.js';
 
 // EPIPE handlers (must be registered at startup)
 process.stdout.on('error', (err: NodeJS.ErrnoException) => {
@@ -58,7 +58,8 @@ async function main(): Promise<void> {
 
   // Parse commands and dispatch
   const commands = InputSchema.parse(JSON.parse(stdinRaw));
-  const results = commands.map((cmd) => handleCommand(cmd, requirements));
+  const store: UserStore = new Map();
+  const results = commands.map((cmd) => handleCommand(cmd, requirements, store));
 
   process.stdout.write(JSON.stringify(results, null, 2) + '\n');
 }

@@ -17,21 +17,33 @@ export const RequirementsSchema = z.object({
   flows: z.record(z.string(), FlowSchema),
 });
 
-const UserSchema = z.looseObject({ id: z.string() });
+const CreateUserCommandSchema = z.object({
+  command: z.literal('create_user'),
+  user: z.object({
+    id: z.string(),
+    // Nullish here so a missing or null country yields a per-command `required` error
+    // instead of a ZodError that would abort the whole batch
+    country: z.string().nullish(),
+  }),
+});
 
 const GetFlowsCommandSchema = z.object({
   command: z.literal('get_flows'),
-  user: UserSchema,
+  user_id: z.string(),
 });
 
 const SubmitCommandSchema = z.object({
   command: z.literal('submit'),
-  user: UserSchema,
+  user_id: z.string(),
   flow: z.string(),
   step: z.string(),
   data: z.record(z.string(), z.unknown()),
 });
 
-const CommandSchema = z.discriminatedUnion('command', [GetFlowsCommandSchema, SubmitCommandSchema]);
+const CommandSchema = z.discriminatedUnion('command', [
+  CreateUserCommandSchema,
+  GetFlowsCommandSchema,
+  SubmitCommandSchema,
+]);
 
 export const InputSchema = z.array(CommandSchema);

@@ -19,9 +19,14 @@ export function evaluateFlows(user: UserObject, requirements: Requirements): Flo
   return results;
 }
 
+// Own-property lookup so inherited names like `constructor` never count as user data
+function getUserField(user: UserObject, key: string): unknown {
+  return Object.hasOwn(user, key) ? user[key] : undefined;
+}
+
 export function matchesConditions(user: UserObject, conditions: Record<string, string>): boolean {
   for (const [key, value] of Object.entries(conditions)) {
-    if (user[key] !== value) {
+    if (getUserField(user, key) !== value) {
       return false;
     }
   }
@@ -38,7 +43,7 @@ export function isStepComplete(
     return false;
   }
   for (const field of step.fields) {
-    if (user[field] == null) {
+    if (getUserField(user, field) == null) {
       return false;
     }
   }
@@ -56,7 +61,9 @@ export function findNextStep(
       if (!step) {
         return null;
       }
-      return { name: stepName, fields: step.fields };
+      // Return only remaining (unfilled) fields
+      const remainingFields = step.fields.filter((field) => getUserField(user, field) == null);
+      return { name: stepName, fields: remainingFields };
     }
   }
   return null;
@@ -69,7 +76,7 @@ export function mergeStepData(
 ): UserObject {
   const filtered: Record<string, unknown> = {};
   for (const field of stepFields) {
-    if (field in data) {
+    if (Object.hasOwn(data, field)) {
       filtered[field] = data[field];
     }
   }
