@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "description": "CLI tool for evaluating user onboarding flows and validating step submissions",
   "bin": {
     "onboard": "./onboard"

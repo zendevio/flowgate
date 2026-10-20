@@ -3,6 +3,7 @@ name = "flowgate"
 version = "1.0.1"
 edition = "2024"
 rust-version = "1.85"
+license = "MIT"
 
 [[bin]]
 name = "onboard"
